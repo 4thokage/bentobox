@@ -1,0 +1,36 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+
+    - name: Get version from package.json
+      id: version
+      run: |
+        VERSION=$(jq -r .version package.json)
+        echo "VERSION=${VERSION}" >> $GITHUB_ENV
+        echo "Package version: $VERSION"
+      
+    - name: Build the Docker image
+      run: |
+        if [[ $GITHUB_REF == 'refs/heads/main' ]]; then
+          TAG="bentobox:${{ env.VERSION }}-main"
+        else
+          TAG="bentobox:${{ env.VERSION }}-pr-${{ github.event.pull_request.number }}"
+        fi
+        echo "Building Docker image with tag: $TAG"
+        docker build . --file Dockerfile --tag $TAG
